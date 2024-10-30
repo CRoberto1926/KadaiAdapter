@@ -13,31 +13,25 @@ import java.util.Base64;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 
 @SpringBootTest(
     classes = KadaiAdapterTestApplication.class,
     webEnvironment = WebEnvironment.DEFINED_PORT)
+@AutoConfigureWebTestClient
 @ExtendWith(JaasExtension.class)
 @ContextConfiguration
 class HealthCheckTest extends AbsIntegrationTest {
 
-  @MockBean private RestTemplate restTemplate;
-  @LocalServerPort private Integer port;
 
   @WithAccessId(user = "admin")
   @Test
@@ -57,9 +51,8 @@ class HealthCheckTest extends AbsIntegrationTest {
                 Mockito.eq(responseType)))
         .thenReturn(ResponseEntity.ok(engines));
 
-    TestRestTemplate testRestTemplate = createRestTemplate();
     ResponseEntity<String> response =
-        testRestTemplate.getForEntity("/actuator/health/external-services", String.class);
+        restTemplate.getForEntity("/actuator/health/external-services", String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody())
@@ -83,9 +76,8 @@ class HealthCheckTest extends AbsIntegrationTest {
                 Mockito.eq(responseType)))
         .thenReturn(ResponseEntity.ok(engines));
 
-    TestRestTemplate testRestTemplate = createRestTemplate();
     ResponseEntity<String> response =
-        testRestTemplate.getForEntity("/actuator/health/external-services", String.class);
+        restTemplate.getForEntity("/actuator/health/external-services", String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody())
@@ -107,9 +99,8 @@ class HealthCheckTest extends AbsIntegrationTest {
                 Mockito.eq(responseType)))
         .thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Page Not Found"));
 
-    TestRestTemplate testRestTemplate = createRestTemplate();
     ResponseEntity<String> response =
-        testRestTemplate.getForEntity("/actuator/health/external-services", String.class);
+        restTemplate.getForEntity("/actuator/health/external-services", String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody())
@@ -137,9 +128,8 @@ class HealthCheckTest extends AbsIntegrationTest {
                 Mockito.eq(responseType)))
         .thenReturn(ResponseEntity.ok(eventCount));
 
-    TestRestTemplate testRestTemplate = createRestTemplate();
     ResponseEntity<String> response =
-        testRestTemplate.getForEntity("/actuator/health/external-services", String.class);
+        restTemplate.getForEntity("/actuator/health/external-services", String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody())
@@ -162,9 +152,8 @@ class HealthCheckTest extends AbsIntegrationTest {
                 Mockito.eq(responseType)))
         .thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Page Not Found"));
 
-    TestRestTemplate testRestTemplate = createRestTemplate();
     ResponseEntity<String> response =
-        testRestTemplate.getForEntity("/actuator/health/external-services", String.class);
+        restTemplate.getForEntity("/actuator/health/external-services", String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody())
@@ -211,9 +200,8 @@ class HealthCheckTest extends AbsIntegrationTest {
                 Mockito.eq(responseType)))
         .thenReturn(ResponseEntity.ok(versionInfo));
 
-    TestRestTemplate testRestTemplate = createRestTemplate();
     ResponseEntity<String> response =
-        testRestTemplate.getForEntity("/actuator/health/external-services", String.class);
+        restTemplate.getForEntity("/actuator/health/external-services", String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody())
@@ -255,9 +243,8 @@ class HealthCheckTest extends AbsIntegrationTest {
                 Mockito.eq(responseType)))
         .thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Page Not Found"));
 
-    TestRestTemplate testRestTemplate = createRestTemplate();
     ResponseEntity<String> response =
-        testRestTemplate.getForEntity("/actuator/health/external-services", String.class);
+        restTemplate.getForEntity("/actuator/health/external-services", String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody())
@@ -265,12 +252,5 @@ class HealthCheckTest extends AbsIntegrationTest {
         .contains(
             "\"Kadai Service Error\":\"Error connecting to service: "
                 + "404 Page Not Found\"");
-  }
-
-  private TestRestTemplate createRestTemplate() {
-    return new TestRestTemplate(
-        new RestTemplateBuilder()
-            .rootUri("http://localhost:" + port)
-            .requestFactory(HttpComponentsClientHttpRequestFactory.class));
   }
 }

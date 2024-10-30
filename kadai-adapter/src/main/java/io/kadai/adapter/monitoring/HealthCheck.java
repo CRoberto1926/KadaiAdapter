@@ -139,7 +139,7 @@ public class HealthCheck implements HealthIndicator {
             .toString();
     HttpEntity<?> auth = new HttpEntity<>(generateHeadersForUser("admin"));
 
-    return pingService(url, auth , VersionInfoRepresentationModel.class); // This may need adjustment
+    return pingService(url, auth, VersionInfoRepresentationModel.class);
   }
 
   public static HttpHeaders generateHeadersForUser(String user) {
