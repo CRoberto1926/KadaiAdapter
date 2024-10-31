@@ -45,7 +45,7 @@ public class HealthCheck implements HealthIndicator {
   public Health health() {
     Health.Builder camundaHealth = Health.up();
     Health.Builder outboxHealth = Health.up();
-    Health.Builder kadaiHealth = Health.up();
+    //Health.Builder kadaiHealth = Health.up();
     try {
       ResponseEntity<EngineInfoRepresentationModel[]> camundaResponse = pingCamundaRest();
       EngineInfoRepresentationModel[] engines = camundaResponse.getBody();
@@ -78,22 +78,22 @@ public class HealthCheck implements HealthIndicator {
           .status(Health.down().build().getStatus());
     }
 
-    try {
-      ResponseEntity<VersionInfoRepresentationModel> kadaiResponse =
-          pingKadaiGetCurrentSchemaVersion();
-      kadaiHealth
-          .withDetail("Kadai Service", kadaiResponse.getBody())
-          .status(Health.up().build().getStatus());
-    } catch (Exception e) {
-      kadaiHealth
-          .withDetail("Kadai Service Error", e.getMessage())
-          .status(Health.down().build().getStatus());
-    }
+    //try {
+    //  ResponseEntity<VersionInfoRepresentationModel> kadaiResponse =
+    //      pingKadaiGetCurrentSchemaVersion();
+    //  kadaiHealth
+    //      .withDetail("Kadai Service", kadaiResponse.getBody())
+    //      .status(Health.up().build().getStatus());
+    //} catch (Exception e) {
+    //  kadaiHealth
+    //      .withDetail("Kadai Service Error", e.getMessage())
+    //      .status(Health.down().build().getStatus());
+    //}
 
     return Health.status("External Services Status")
         .withDetail("Camunda Health", camundaHealth.build())
         .withDetail("Outbox Health", outboxHealth.build())
-        .withDetail("Kadai Health", kadaiHealth.build())
+        //.withDetail("Kadai Health", kadaiHealth.build())
         .build();
   }
 

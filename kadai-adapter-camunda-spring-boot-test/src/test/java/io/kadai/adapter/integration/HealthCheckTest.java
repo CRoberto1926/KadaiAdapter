@@ -1,6 +1,9 @@
 package io.kadai.adapter.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import io.kadai.adapter.monitoring.HealthCheck.EngineInfoRepresentationModel;
 import io.kadai.adapter.monitoring.HealthCheck.EventCountRepresentationModel;
@@ -10,19 +13,27 @@ import io.kadai.common.test.security.JaasExtension;
 import io.kadai.common.test.security.WithAccessId;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 
 @SpringBootTest(
     classes = KadaiAdapterTestApplication.class,
@@ -31,28 +42,40 @@ import org.springframework.web.client.HttpClientErrorException;
 @ExtendWith(JaasExtension.class)
 @ContextConfiguration
 class HealthCheckTest extends AbsIntegrationTest {
+  private MockRestServiceServer mockServer;
+  @Autowired
+  private RestTemplate restTemplate;
 
+
+  @BeforeEach
+  @WithAccessId(user = "admin")
+  void setUp() throws Exception {
+    super.setUp();
+    mockServer = MockRestServiceServer.createServer(restTemplate);
+  }
 
   @WithAccessId(user = "admin")
   @Test
   void should_ReturnUp_When_CheckingCamundaEngineHealth() {
-    EngineInfoRepresentationModel[] engines = new EngineInfoRepresentationModel[1];
-    engines[0] = new EngineInfoRepresentationModel();
-    engines[0].setName("default");
+    mockServer
+        .expect(requestTo("http://localhost:8081/example-context-root/engine-rest/engine"))
+        .andExpect(method(HttpMethod.GET))
+        .andRespond(withSuccess("[{\"name\": \"default\"}]", MediaType.APPLICATION_JSON));
+
+    mockServer
+        .expect(requestTo("http://localhost:8081/example-context-root/outbox-rest/events/count?retries=0"))
+        .andExpect(method(HttpMethod.GET))
+        .andRespond(withSuccess("[{\"name\": \"default\"}]", MediaType.APPLICATION_JSON));
+
+    // TODO also mock the commented call in HealthCheck. Or can we split the 3 Healths (camundahealth,
+    // TODO outboxHealth and kadaiHealth in 3 separate Health checks, and combine them in some other
+    // TODO way? The class HealthCheck seems a bit difficult to test.
 
     ParameterizedTypeReference<EngineInfoRepresentationModel[]> responseType =
         new ParameterizedTypeReference<>() {};
 
-    Mockito.when(
-            restTemplate.exchange(
-                Mockito.eq("http://localhost:8081/example-context-root/engine-rest/engine"),
-                Mockito.eq(HttpMethod.GET),
-                Mockito.any(),
-                Mockito.eq(responseType)))
-        .thenReturn(ResponseEntity.ok(engines));
-
     ResponseEntity<String> response =
-        restTemplate.getForEntity("/actuator/health/external-services", String.class);
+        testRestTemplate.getForEntity("http://localhost:10020/actuator/health/external-services", String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody())
