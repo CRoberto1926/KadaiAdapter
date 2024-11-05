@@ -18,11 +18,13 @@ public class ExternalServicesHealthCheck implements CompositeHealthContributor {
   public ExternalServicesHealthCheck(
       CamundaHealthCheck camundaHealthIndicator,
       OutboxHealthCheck outboxHealthIndicator,
-      KadaiHealthCheck kadaiHealthIndicator) {
+      KadaiHealthCheck kadaiHealthIndicator,
+      SchedulerHealthCheck schedulerHealthCheck) {
 
     healthContributors.put("Camunda Health", camundaHealthIndicator);
     healthContributors.put("Outbox Health", outboxHealthIndicator);
     healthContributors.put("Kadai Health", kadaiHealthIndicator);
+    healthContributors.put("Scheduler Health", schedulerHealthCheck);
   }
 
   @Override
