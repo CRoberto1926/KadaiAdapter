@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -17,17 +16,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-@Component("external-services")
+@Component
 public class HealthCheck implements HealthIndicator {
 
   private final RestTemplate restTemplate;
-
-  @Autowired private Environment env;
-
-  @Autowired
-  public HealthCheck(RestTemplate restTemplate) {
-    this.restTemplate = restTemplate;
-  }
 
   @Value("${camundaOutboxService.address}")
   private String camundaOutboxAddress;
@@ -41,11 +33,16 @@ public class HealthCheck implements HealthIndicator {
   @Value("${kadaiService.port}")
   private int kadaiPort;
 
+  @Autowired
+  public HealthCheck(RestTemplate restTemplate) {
+    this.restTemplate = restTemplate;
+  }
+
   @Override
   public Health health() {
     Health.Builder camundaHealth = Health.up();
     Health.Builder outboxHealth = Health.up();
-    //Health.Builder kadaiHealth = Health.up();
+    Health.Builder kadaiHealth = Health.up();
     try {
       ResponseEntity<EngineInfoRepresentationModel[]> camundaResponse = pingCamundaRest();
       EngineInfoRepresentationModel[] engines = camundaResponse.getBody();
@@ -78,23 +75,35 @@ public class HealthCheck implements HealthIndicator {
           .status(Health.down().build().getStatus());
     }
 
-    //try {
-    //  ResponseEntity<VersionInfoRepresentationModel> kadaiResponse =
-    //      pingKadaiGetCurrentSchemaVersion();
-    //  kadaiHealth
-    //      .withDetail("Kadai Service", kadaiResponse.getBody())
-    //      .status(Health.up().build().getStatus());
-    //} catch (Exception e) {
-    //  kadaiHealth
-    //      .withDetail("Kadai Service Error", e.getMessage())
-    //      .status(Health.down().build().getStatus());
-    //}
+    try {
+      ResponseEntity<VersionInfoRepresentationModel> kadaiResponse =
+          pingKadaiGetCurrentSchemaVersion();
+      kadaiHealth
+          .withDetail("Kadai Service", kadaiResponse.getBody())
+          .status(Health.up().build().getStatus());
+    } catch (Exception e) {
+      kadaiHealth
+          .withDetail("Kadai Service Error", e.getMessage())
+          .status(Health.down().build().getStatus());
+    }
 
     return Health.status("External Services Status")
         .withDetail("Camunda Health", camundaHealth.build())
         .withDetail("Outbox Health", outboxHealth.build())
-        //.withDetail("Kadai Health", kadaiHealth.build())
+        .withDetail("Kadai Health", kadaiHealth.build())
         .build();
+  }
+
+  public static HttpHeaders generateHeadersForUser(String user) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.add("Authorization", encodeUserAndPasswordAsBasicAuth(user));
+    headers.add("Content-Type", "application/hal+json");
+    return headers;
+  }
+
+  public static String encodeUserAndPasswordAsBasicAuth(String user) {
+    String toEncode = user + ":" + user;
+    return "Basic " + Base64.getEncoder().encodeToString(toEncode.getBytes(StandardCharsets.UTF_8));
   }
 
   private <T> ResponseEntity<T> pingService(String url, HttpEntity<?> auth, Class<T> responseType)
@@ -140,18 +149,6 @@ public class HealthCheck implements HealthIndicator {
     HttpEntity<?> auth = new HttpEntity<>(generateHeadersForUser("admin"));
 
     return pingService(url, auth, VersionInfoRepresentationModel.class);
-  }
-
-  public static HttpHeaders generateHeadersForUser(String user) {
-    HttpHeaders headers = new HttpHeaders();
-    headers.add("Authorization", encodeUserAndPasswordAsBasicAuth(user));
-    headers.add("Content-Type", "application/hal+json");
-    return headers;
-  }
-
-  public static String encodeUserAndPasswordAsBasicAuth(String user) {
-    String toEncode = user + ":" + user;
-    return "Basic " + Base64.getEncoder().encodeToString(toEncode.getBytes(StandardCharsets.UTF_8));
   }
 
   public static class EngineInfoRepresentationModel {

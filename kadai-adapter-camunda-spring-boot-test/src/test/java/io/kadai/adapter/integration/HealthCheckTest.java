@@ -21,15 +21,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.HttpClientErrorException;
@@ -43,9 +40,7 @@ import org.springframework.web.client.RestTemplate;
 @ContextConfiguration
 class HealthCheckTest extends AbsIntegrationTest {
   private MockRestServiceServer mockServer;
-  @Autowired
-  private RestTemplate restTemplate;
-
+  @Autowired private RestTemplate restTemplate;
 
   @BeforeEach
   @WithAccessId(user = "admin")
@@ -63,19 +58,15 @@ class HealthCheckTest extends AbsIntegrationTest {
         .andRespond(withSuccess("[{\"name\": \"default\"}]", MediaType.APPLICATION_JSON));
 
     mockServer
-        .expect(requestTo("http://localhost:8081/example-context-root/outbox-rest/events/count?retries=0"))
+        .expect(
+            requestTo(
+                "http://localhost:8081/example-context-root/outbox-rest/events/count?retries=0"))
         .andExpect(method(HttpMethod.GET))
         .andRespond(withSuccess("[{\"name\": \"default\"}]", MediaType.APPLICATION_JSON));
 
-    // TODO also mock the commented call in HealthCheck. Or can we split the 3 Healths (camundahealth,
-    // TODO outboxHealth and kadaiHealth in 3 separate Health checks, and combine them in some other
-    // TODO way? The class HealthCheck seems a bit difficult to test.
-
-    ParameterizedTypeReference<EngineInfoRepresentationModel[]> responseType =
-        new ParameterizedTypeReference<>() {};
-
     ResponseEntity<String> response =
-        testRestTemplate.getForEntity("http://localhost:10020/actuator/health/external-services", String.class);
+        testRestTemplate.getForEntity(
+            "http://localhost:10020/actuator/health/external-services", String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody())
@@ -129,8 +120,7 @@ class HealthCheckTest extends AbsIntegrationTest {
     assertThat(response.getBody())
         .contains("\"Camunda Health\":{\"status\":\"DOWN\"")
         .contains(
-            "\"Camunda Engine Error\":\"Error connecting to service: "
-                + "404 Page Not Found\"");
+            "\"Camunda Engine Error\":\"Error connecting to service: " + "404 Page Not Found\"");
   }
 
   @WithAccessId(user = "admin")
@@ -182,8 +172,7 @@ class HealthCheckTest extends AbsIntegrationTest {
     assertThat(response.getBody())
         .contains("\"Outbox Health\":{\"status\":\"DOWN\"")
         .contains(
-            "\"Outbox Service Error\":\"Error connecting to service: "
-                + "404 Page Not Found\"");
+            "\"Outbox Service Error\":\"Error connecting to service: " + "404 Page Not Found\"");
   }
 
   @WithAccessId(user = "admin")
@@ -273,7 +262,6 @@ class HealthCheckTest extends AbsIntegrationTest {
     assertThat(response.getBody())
         .contains("\"Kadai Health\":{\"status\":\"DOWN\"")
         .contains(
-            "\"Kadai Service Error\":\"Error connecting to service: "
-                + "404 Page Not Found\"");
+            "\"Kadai Service Error\":\"Error connecting to service: " + "404 Page Not Found\"");
   }
 }

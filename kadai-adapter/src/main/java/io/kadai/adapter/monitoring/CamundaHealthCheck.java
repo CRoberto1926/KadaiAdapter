@@ -30,21 +30,16 @@ public class CamundaHealthCheck implements HealthIndicator {
       ResponseEntity<CamundaEngineInfoRepresentationModel[]> response = pingCamundaRest();
       CamundaEngineInfoRepresentationModel[] engines = response.getBody();
 
-      if(engines == null || engines.length == 0) {
-        return Health.down()
-            .withDetail("Camunda Engine Error", "No engines found")
-            .build();
+      if (engines == null || engines.length == 0) {
+        return Health.down().withDetail("Camunda Engine Error", "No engines found").build();
       }
-      return Health.up()
-          .withDetail("Camunda Engines", engines)
-          .build();
+      return Health.up().withDetail("Camunda Engines", engines).build();
     } catch (Exception e) {
       return Health.down().withDetail("Camunda Engine Error", e.getMessage()).build();
     }
   }
 
-  private ResponseEntity<CamundaEngineInfoRepresentationModel[]> pingCamundaRest()
-      throws Exception {
+  private ResponseEntity<CamundaEngineInfoRepresentationModel[]> pingCamundaRest() {
     String url =
         UriBuilder.fromUri(camundaOutboxAddress)
             .port(camundaOutboxPort)
